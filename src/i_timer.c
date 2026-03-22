@@ -79,7 +79,13 @@ uint64_t I_GetTimeUS(void)
 
 void I_Sleep(int ms)
 {
+#ifdef __EMSCRIPTEN__
+    // No-op: emscripten_set_main_loop yields via requestAnimationFrame.
+    // SDL_Delay calls emscripten_sleep which conflicts with the main loop.
+    (void)ms;
+#else
     SDL_Delay(ms);
+#endif
 }
 
 void I_WaitVBL(int count)

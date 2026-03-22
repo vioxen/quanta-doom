@@ -1,0 +1,8 @@
+upstream: fabiangreffrath/crispy-doom
+tag: crispy-doom-7.1
+sha: bd2fb00b
+emcc: 3.1.74
+build: emcmake cmake + emmake make
+wasm_size: 2.5MB
+wad: freedoom1.wad v0.13.0 (29MB, BSD-3-Clause)
+date: 2026-03-22

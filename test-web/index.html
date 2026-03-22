@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>Quanta Doom — WASM Spike Test</title>
+  <style>
+    * { box-sizing: border-box; }
+    body { margin: 0; background: #1a1a2e; display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100vh; font-family: monospace; color: #e0e0e0; overflow: hidden; }
+    #status { margin: 8px; font-size: 14px; position: absolute; top: 0; z-index: 5; pointer-events: none; }
+    canvas {
+      cursor: crosshair;
+      width: 80vw;
+      height: 90vh;
+      display: block;
+    }
+    #start-overlay { position: absolute; top: 0; left: 0; width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; background: rgba(0,0,0,0.8); z-index: 10; cursor: pointer; }
+    #start-overlay span { font-size: 24px; color: #ff4444; text-transform: uppercase; letter-spacing: 4px; }
+  </style>
+</head>
+<body>
+  <div id="status">Loading Quanta Doom...</div>
+  <div id="start-overlay" style="display:none"><span>Click to Start</span></div>
+  <canvas id="canvas" tabindex="0" width="960" height="600"></canvas>
+
+  <script>
+    const statusEl = document.getElementById('status');
+    const overlay = document.getElementById('start-overlay');
+
+    var Module = {
+      noInitialRun: true,
+      canvas: (function() {
+        var c = document.getElementById('canvas');
+        c.width = 960;
+        c.height = 600;
+        c.addEventListener('webglcontextlost', function(e) { e.preventDefault(); }, false);
+        return c;
+      })(),
+
+      preRun: [function() {
+        statusEl.textContent = 'Loading WAD file...';
+        Module.FS.createPreloadedFile('', 'freedoom1.wad', 'freedoom1.wad', true, true);
+        // Crispy Doom saves config to /libsdl/crispy-doom/ — create the path
+        try { Module.FS.mkdir('/libsdl'); } catch(e) {}
+        try { Module.FS.mkdir('/libsdl/crispy-doom'); } catch(e) {}
+        Module.FS.createPreloadedFile('/libsdl/crispy-doom', 'default.cfg', 'default.cfg', true, true);
+      }],
+
+      onRuntimeInitialized: function() {
+        statusEl.textContent = 'WASM ready — click to start';
+        overlay.style.display = 'flex';
+
+        overlay.addEventListener('click', function() {
+          overlay.style.display = 'none';
+          statusEl.textContent = 'Running...';
+
+          var canvas = document.getElementById('canvas');
+          canvas.focus();
+
+          // Request pointer lock for proper mouse look
+          canvas.requestPointerLock = canvas.requestPointerLock || canvas.mozRequestPointerLock;
+          canvas.addEventListener('click', function() {
+            canvas.requestPointerLock();
+          });
+
+          Module.callMain([
+            '-iwad', 'freedoom1.wad',
+            '-window',
+            '-nogui',
+            '-config', '/libsdl/crispy-doom/default.cfg',
+            '-geometry', '800x600'
+          ]);
+        });
+      },
+
+      print: function(text) {
+        console.log('[doom]', text);
+      },
+      printErr: function(text) {
+        console.error('[doom]', text);
+      },
+      setStatus: function(text) {
+        if (text) statusEl.textContent = text;
+      },
+      monitorRunDependencies: function(left) {
+        if (left === 0) statusEl.textContent = 'All dependencies loaded';
+      }
+    };
+
+    // Prevent arrow keys and space from scrolling
+    window.addEventListener('keydown', function(e) {
+      if (['ArrowUp','ArrowDown','ArrowLeft','ArrowRight',' '].includes(e.key)) {
+        e.preventDefault();
+      }
+    }, { passive: false });
+  </script>
+  <script async src="crispy-doom.js"></script>
+</body>
+</html>

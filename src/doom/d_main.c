@@ -621,10 +621,18 @@ void D_DoomLoop (void)
         wipegamestate = gamestate;
     }
 
+#ifdef __EMSCRIPTEN__
+    #include <emscripten.h>
+    // fps=0 uses requestAnimationFrame, simulate_infinite_loop=0
+    // to avoid conflict with ASYNCIFY's emscripten_sleep in D_RunFrame
+    emscripten_set_main_loop(D_RunFrame, 0, 0);
+    return; // let D_DoomLoop return — main loop is now driven by rAF
+#else
     while (1)
     {
         D_RunFrame();
     }
+#endif
 }
 
 
