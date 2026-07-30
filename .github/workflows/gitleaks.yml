@@ -1,0 +1,32 @@
+# Secret-scan gate. Logic lives in vioxen/org-workflows — this is just the stub.
+#
+# On a PR it scans ONLY the commits the PR adds, so pre-existing secrets in this
+# repo's history do not fail unrelated PRs. It also scans the WORKING TREE at
+# HEAD, which is the only pass that sees a secret committed once and left in
+# place (QUANTATECH-508). Tree findings are report-only for now.
+#
+# No secrets required.
+name: Gitleaks
+
+on:
+  pull_request:
+  schedule:
+    # Weekly, off-peak. Minute staggered per repo (QUANTATECH-450 rollout) so the
+    # gated repos do not all hit the runner pool in the same minute.
+    - cron: "30 4 * * 1"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  scan:
+    uses: vioxen/org-workflows/.github/workflows/gitleaks.yml@main
+    with:
+      # ubuntu-latest, NOT the shared arc-runner-set, because this repo is
+      # PUBLIC. A self-hosted runner on a public repo lets a fork PR execute
+      # arbitrary code on our own infrastructure, and the ARC runner group may
+      # not serve public repos at all — in which case the job would queue
+      # against an unserved label forever without ever alerting. org-workflows,
+      # the only other public gated repo, pins ubuntu-latest for the same reason.
+      runs-on: ubuntu-latest
